@@ -1,32 +1,33 @@
-# .github/workflows/proxy.yml
-name: Deploy Proxy Server
+name: 启动内网API代理服务器
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:  # 手动触发
+  schedule:
+    - cron: '0 0 * * *'  # 每天0点自动触发（可选，用于保持Runner活跃）
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
+  start-proxy:
+    runs-on: self-hosted  # 关键！使用自托管Runner
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: 检出代码
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'
+      - name: 设置Python环境
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install dependencies
-      run: npm install
+      - name: 安装依赖
+        run: |
+          pip install flask requests
 
-    - name: Build the project
-      run: npm run build
+      - name: 启动代理服务器（运行2小时后自动退出）
+        run: |
+          echo "🚀 启动API代理服务器，将在2小时后自动关闭..."
+          timeout 7200 python proxy_server.py  # 7200秒 = 2小时
+        timeout-minutes: 130  # 留点余量
 
-    - name: Deploy to Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./dist
+      - name: 清理（可选）
+        if: always()
+        run: |
+          echo "✅ 代理服务已停止"
